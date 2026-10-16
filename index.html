@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#23314f">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Prsten">
+<title>Prsten</title>
+
+<style>
+/* Layout: jedna kolona za mobitel — dvije ekipe gore, tipkovnica konja, ispod papirni zapis */
+:root{
+  --bg:#ecebe6; --surface:#f8f7f3; --ink:#1d2433; --muted:#6b6f7a; --line:#d6d4cc;
+  --wool:#23314f; --wool-ink:#f3f1ea; --brass:#b5862a; --brass-soft:#f1e3c2; --warn:#a33a2a;
+  --display:"Roboto Slab","Rockwell","Noto Serif",Georgia,serif; --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12151d; --surface:#1b202b; --ink:#ecebe6; --muted:#9a9ea9; --line:#2d3341;
+  --wool:#2c3c61; --wool-ink:#f3f1ea; --brass:#d9a845; --brass-soft:#3a3120; --warn:#e2725f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12151d; --surface:#1b202b; --ink:#ecebe6; --muted:#9a9ea9; --line:#2d3341;
+  --wool:#2c3c61; --wool-ink:#f3f1ea; --brass:#d9a845; --brass-soft:#3a3120; --warn:#e2725f; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 32px}
+.app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:400;font-size:1.6rem;margin:0;letter-spacing:.01em}
+.target{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.target button{border:0;background:transparent;color:var(--muted);font:600 .85rem var(--body);padding:6px 10px;border-radius:999px;cursor:pointer;font-variant-numeric:tabular-nums}
+.target button[aria-pressed="true"]{background:var(--wool);color:var(--wool-ink)}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.team{position:relative;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:10px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;min-width:0}
+.team.sel{border-color:var(--brass);background:var(--wool);color:var(--wool-ink);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 35%,transparent)}
+.team:not(.sel){opacity:.72}
+.team.sel input{color:var(--wool-ink);border-bottom-color:color-mix(in srgb,var(--wool-ink) 35%,transparent)}
+.team.sel .bar{background:color-mix(in srgb,var(--wool-ink) 25%,transparent)}
+.team.sel .bar i{background:var(--brass)}
+.team.sel .left{color:color-mix(in srgb,var(--wool-ink) 75%,transparent)}
+.team.sel .ring{color:var(--wool-ink);border-color:color-mix(in srgb,var(--wool-ink) 40%,transparent)}
+.team.sel .ring.on{color:var(--ink)}
+.tag{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--brass);color:#1d2433;font:700 .68rem var(--body);letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.padhead{display:flex;align-items:baseline;justify-content:center;gap:8px;font:600 .95rem var(--body);color:var(--muted);margin:0}
+.padhead b{font-family:var(--display);font-weight:400;font-size:1.35rem;color:var(--ink);text-transform:uppercase}
+.pad button.zero{grid-column:1/-1;font-family:var(--body);font-weight:700;font-size:1.05rem;background:transparent;color:var(--ink);border:1px dashed var(--muted);padding:12px 0}
+.team input{width:100%;min-width:0;text-align:center;border:0;border-bottom:1px dashed var(--line);background:transparent;color:var(--ink);font:700 1.05rem var(--body);text-transform:uppercase;letter-spacing:.06em;padding:2px 0}
+.team input:focus{outline:none;border-bottom-color:var(--brass)}
+.score{font-family:var(--display);font-size:3.2rem;line-height:1;font-variant-numeric:tabular-nums}
+.bar{width:100%;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--wool);border-radius:3px;transition:width .3s}
+.team.done .bar i{background:var(--brass)}
+.left{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.ring{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;font:600 .78rem var(--body);padding:5px 10px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.ring svg{width:16px;height:16px}
+.ring.on{background:var(--brass-soft);border-color:var(--brass);color:var(--ink)}
+.ring.on svg circle{stroke:var(--brass)}
+.hint{font-size:.85rem;color:var(--muted);text-align:center;margin:0}
+.hint b{color:var(--ink)}
+.pad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pad button{font-family:var(--display);font-size:1.7rem;padding:14px 0;border-radius:12px;border:0;background:var(--wool);color:var(--wool-ink);cursor:pointer;font-variant-numeric:tabular-nums;touch-action:manipulation}
+.pad button:active{transform:scale(.96)}
+.pad button.small{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.actions{display:flex;gap:8px}
+.actions button{flex:1;font:600 .95rem var(--body);padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.actions button.ext{border-color:var(--wool);background:var(--wool);color:var(--wool-ink)}
+.actions button.end{border-color:var(--brass);background:var(--brass-soft)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.confirm{background:var(--surface);border:2px solid var(--brass);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.confirm p{margin:0}
+.confirm .row{display:flex;gap:8px;flex-wrap:wrap}
+.confirm .row button{flex:1;min-width:120px;font:600 .95rem var(--body);padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.confirm .row button.primary{background:var(--wool);color:var(--wool-ink);border-color:var(--wool)}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.sheet h2{font:700 .75rem var(--body);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0;padding:10px 12px;border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;table-layout:fixed}
+th,td{padding:7px 10px;text-align:center}
+thead th{font:700 .85rem var(--body);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--ink)}
+th.n,td.n{width:2.6rem;color:var(--muted);font-size:.8rem;text-align:left}
+td + td{border-left:1px solid var(--line)}
+th + th{border-left:1px solid var(--line)}
+tbody tr:nth-child(even){background:color-mix(in srgb,var(--line) 30%,transparent)}
+td .add{color:var(--muted);font-size:.8rem;margin-right:6px}
+td .tot{font-weight:700;font-size:1.05rem}
+td .r9{display:block;font-size:.7rem;color:var(--warn)}
+.empty{padding:18px 12px;color:var(--muted);text-align:center;font-size:.9rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header>
+    <h1>Prsten</h1>
+    <div class="target" role="group" aria-label="Do koliko konja" id="target"></div>
+  </header>
+
+  <section class="teams" id="teams"></section>
+  <p class="hint" id="hint"></p>
+
+  <p class="padhead" id="padhead"></p>
+  <div class="pad" id="pad"></div>
+
+  <div class="actions">
+    <button id="undo" type="button">Poništi zadnje</button>
+    <button id="ext" type="button" class="ext" hidden>Produži +100</button>
+    <button id="end" type="button" class="end">Kraj partije</button>
+  </div>
+
+  <div class="confirm" id="confirm" hidden>
+    <p id="confirmText"></p>
+    <div class="row">
+      <button type="button" id="confirmYes" class="primary">Da, nova partija</button>
+      <button type="button" id="confirmNo">Odustani</button>
+    </div>
+  </div>
+
+  <section class="sheet">
+    <h2>Zapis partije</h2>
+    <div id="log"></div>
+  </section>
+</div>
+
+<script>
+const KEY='prsten-v1', TARGETS=[201,301,501,1001], VALUES=[12,10,8,7,6,5,2,1];
+const fresh=()=>({names:['MI','VI'],target:201,ring:null,sel:0,entries:[]});
+let S=fresh();
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.entries)S=Object.assign(fresh(),s)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+
+// Pravilo devetke: zbroj ne smije završiti na 9 -> diže se na sljedeću deseticu
+const fix9=n=>n%10===9?n+1:n;
+
+function totals(){
+  const t=[0,0];
+  S.entries.forEach(e=>{t[e.team]=e.total});
+  return t;
+}
+function add(team,v){
+  const t=totals();
+  const raw=t[team]+v, total=fix9(raw);
+  S.entries.push({team,add:v,raw,total});
+  save();render();
+}
+
+function render(){
+  const t=totals();
+  // ciljevi
+  const tl=TARGETS.includes(S.target)?TARGETS:[...TARGETS,S.target].sort((a,b)=>a-b);
+  $('target').innerHTML=tl.map(x=>`<button type="button" data-t="${x}" aria-pressed="${S.target===x}">${x}</button>`).join('');
+  // ekipe
+  $('teams').innerHTML=[0,1].map(i=>{
+    const pct=Math.min(100,t[i]/S.target*100), done=t[i]>=S.target;
+    const left=done?`Preko ${S.target}!`:`Još ${S.target-t[i]} do ${S.target}`;
+    return `<div class="team ${S.sel===i?'sel':''} ${done?'done':''}" data-team="${i}">
+      ${S.sel===i?'<span class="tag">Upisujem ovdje</span>':''}
+      <input id="name${i}" value="${esc(S.names[i])}" aria-label="Ime ekipe ${i+1}" maxlength="14">
+      <div class="score">${t[i]}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="left">${left}</div>
+      <button type="button" class="ring ${S.ring===i?'on':''}" data-ring="${i}" aria-pressed="${S.ring===i}">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>
+        ${S.ring===i?'Krije prsten':'Daj prsten'}</button>
+    </div>`}).join('');
+  // tipkovnica
+  const nm=esc(S.names[S.sel]||'');
+  $('pad').innerHTML=VALUES.map(v=>`<button type="button" data-v="${v}" class="${v<=2?'small':''}" aria-label="Dodaj ${v} konja za ${nm}">${v}</button>`).join('');
+  $('padhead').innerHTML=`Konji za <b>${nm}</b>`;
+  // uputa
+  const over=[0,1].filter(i=>t[i]>=S.target);
+  $('hint').innerHTML=over.length
+    ? `<b>${over.map(i=>esc(S.names[i])).join(' i ')}</b> ${over.length>1?'su':'je'} preko ${S.target}. Kad prsten ostane kod ekipe, stisni Kraj partije ili produži igru.`
+    : `Dodirni ekipu kojoj želiš upisati konje.`;
+  // zapis
+  if(!S.entries.length){$('log').innerHTML='<div class="empty">Još nema upisa. Odaberi ekipu i stisni broj konja.</div>';}
+  else{
+    let rows='';
+    S.entries.forEach((e,k)=>{
+      const cell=i=>i!==e.team?'<td></td>':`<td><span class="add">+${e.add}</span><span class="tot">${e.total}</span>${e.raw!==e.total?`<span class="r9">${e.raw} → ${e.total}</span>`:''}</td>`;
+      rows=`<tr><td class="n">${k+1}.</td>${cell(0)}${cell(1)}</tr>`+rows;
+    });
+    $('log').innerHTML=`<table><thead><tr><th class="n">#</th><th>${esc(S.names[0])}</th><th>${esc(S.names[1])}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  $('undo').disabled=!S.entries.length;
+  $('ext').hidden=!over.length;
+  $('ext').textContent=`Produži do ${S.target+100}`;
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest('button,[data-team]');
+  if(!b)return;
+  if(b.dataset.t){S.target=+b.dataset.t;save();render();return}
+  if(b.dataset.ring!==undefined){const i=+b.dataset.ring;S.ring=S.ring===i?null:i;save();render();return}
+  if(b.dataset.v){add(S.sel,+b.dataset.v);return}
+  if(b.dataset.team!==undefined&&!ev.target.closest('input')){S.sel=+b.dataset.team;save();render();return}
+});
+document.addEventListener('input',ev=>{
+  const m=ev.target.id&&ev.target.id.match(/^name(\d)$/);
+  if(!m)return;
+  S.names[+m[1]]=ev.target.value||(+m[1]?'VI':'MI');save();
+  // osvježi samo zaglavlje zapisa i uputu bez gubitka fokusa
+  const th=document.querySelectorAll('thead th');if(th.length)th[+m[1]+1].textContent=S.names[+m[1]];
+});
+document.addEventListener('change',ev=>{if(/^name\d$/.test(ev.target.id))render()});
+$('ext').onclick=()=>{S.target+=100;save();render()};
+$('undo').onclick=()=>{S.entries.pop();save();render()};
+$('end').onclick=()=>{
+  const t=totals();
+  $('confirmText').innerHTML=`Završiti partiju? <b>${esc(S.names[0])} ${t[0]}</b> : <b>${esc(S.names[1])} ${t[1]}</b>. Zapis se briše, imena i cilj ostaju.`;
+  $('confirm').hidden=false;$('confirm').scrollIntoView({behavior:'smooth',block:'center'});
+};
+$('confirmNo').onclick=()=>{$('confirm').hidden=true};
+$('confirmYes').onclick=()=>{S.entries=[];S.ring=null;save();$('confirm').hidden=true;render()};
+
+// Ekran ne gasi tijekom igre (ako preglednik dopušta)
+async function wake(){try{if('wakeLock' in navigator&&document.visibilityState==='visible')await navigator.wakeLock.request('screen')}catch(e){}}
+document.addEventListener('visibilitychange',wake);wake();
+
+render();
+if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+</script>
+
+</body>
+</html>
